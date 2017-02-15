@@ -1,6 +1,18 @@
-const wallet = require('./lib/api/wallets.js');
 const errors = require('./lib/helpers/errors.js');
 const axios = require('axios');
+const admins = require('./lib/api/admins.js');
+const agents = require('./lib/api/agents.js');
+const bans = require('./lib/api/bans.js');
+const cards = require('./lib/api/cards.js');
+const companies = require('./lib/api/companies.js');
+const enrollments = require('./lib/api/enrollments.js');
+const invoices = require('./lib/api/invoices.js');
+const merchants = require('./lib/api/merchants.js');
+const regusers = require('./lib/api/regusers.js');
+const sms = require('./lib/api/sms.js');
+const wallets = require('./lib/api/wallets.js');
+const queryString = require('query-string');
+const nacl = require('tweetnacl');
 
 class SmartApi {
     constructor(options) {
@@ -14,6 +26,7 @@ class SmartApi {
         self.axios;
         this.nonce;
         this.ttl;
+        this.keypair;
 
         this.initAxios();
     }
@@ -51,19 +64,57 @@ class SmartApi {
 
         // Sign request before send
         self.axios.interceptors.request.use(function (config) {
-            if (self.nonce) {
-                var route = config.url.substr(config.baseURL.length);
+            if (self.nonce && self.keypair) {
+                let route = config.url.substr(config.baseURL.length);
 
                 // For get parameter we need to add data to query
                 if (typeof config.params == 'object' && Object.keys(config.params).length) {
                     route += (route.indexOf('?') === -1 ? '?' : '&') + queryString.stringify(config.params);
                 }
 
-                config.headers['Signature'] = crypto.addAuthHeader(route, config.data, self.nonce, self.keypair);
+                var request_data = typeof config.data == 'object' ? JSON.stringify(config.data) : '';
+                var data = route + request_data + self.nonce;
+
+                config.headers['Signature'] = [
+                    self.nonce,
+                    nacl.util.encodeBase64(nacl.sign.detached(nacl.util.decodeUTF8(data), self.keypair.rawSecretKey())),
+                    self.keypair.rawPublicKey().toString('base64')
+                ].join(':');
             }
 
             return config;
         });
+    }
+
+    /**
+     * Set account keypair for signing requests
+     * @param account_id
+     */
+    setKeypair(keypair) {
+        if (typeof keypair == 'undefined' || typeof keypair.accountId != 'function' || typeof keypair.seed != 'function') {
+            throw new errors.InvalidField('keypair');
+        }
+
+        this.keypair = keypair;
+    }
+
+    getNonce(params) {
+        if (this.nonce) {
+            return Promise.resolve(params)
+        }
+
+        if (!this.keypair) {
+            return Promise.reject(new errors.InvalidField('keypair', 'Please use setKeypair(YOUR_KEYPAIR) to work with api'));
+        }
+
+        return this.axios.get('/nonce', {
+                params: {
+                    accountId: this.keypair.accountId()
+                }
+            })
+            .then(function () {
+                return params;
+            });
     }
 }
 
@@ -72,7 +123,22 @@ class SmartApi {
  */
 module.exports = class {
     constructor(options) {
-        var Api = new SmartApi(options);
-        this.Wallet = new wallet(Api);
+        this.Api = new SmartApi(options)
+
+        this.Admins = new admins(this.Api);
+        this.Agents = new agents(this.Api);
+        this.Bans = new bans(this.Api);
+        this.Cards = new cards(this.Api);
+        this.Companies = new companies(this.Api);
+        this.Enrollments = new enrollments(this.Api);
+        this.Invoices = new invoices(this.Api);
+        this.Merchants = new merchants(this.Api);
+        this.Regusers = new regusers(this.Api);
+        this.Sms = new sms(this.Api);
+        this.Wallet = new wallets(this.Api);
+    }
+
+    setKeypair(key) {
+        this.Api.setKeypair(key);
     }
 }
