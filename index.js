@@ -11,7 +11,7 @@ const merchants = require('./lib/api/merchants.js');
 const regusers = require('./lib/api/regusers.js');
 const sms = require('./lib/api/sms.js');
 const wallets = require('./lib/api/wallets.js');
-const queryString = require('query-string');
+const qs = require('qs');
 const nacl = require('tweetnacl');
 
 class SmartApi {
@@ -21,6 +21,9 @@ class SmartApi {
         this.options = Object.assign({}, {
             // Ttl for api requests
             request_ttl: 30,
+
+            // Enable debug mode
+            debug: false,
         }, options);
 
         self.axios;
@@ -69,7 +72,10 @@ class SmartApi {
 
                 // For get parameter we need to add data to query
                 if (typeof config.params == 'object' && Object.keys(config.params).length) {
-                    route += (route.indexOf('?') === -1 ? '?' : '&') + queryString.stringify(config.params);
+                    route += (route.indexOf('?') === -1 ? '?' : '&') + qs.stringify(config.params, {
+                            encode: false,
+                            arrayFormat: 'brackets'
+                        });
                 }
 
                 var request_data = typeof config.data == 'object' ? JSON.stringify(config.data) : '';
@@ -80,6 +86,10 @@ class SmartApi {
                     nacl.util.encodeBase64(nacl.sign.detached(nacl.util.decodeUTF8(data), self.keypair.rawSecretKey())),
                     self.keypair.rawPublicKey().toString('base64')
                 ].join(':');
+            }
+
+            if (self.options.debug) {
+                config.headers['Debug'] = true;
             }
 
             return config;
@@ -135,7 +145,7 @@ module.exports = class {
         this.Merchants = new merchants(this.Api);
         this.Regusers = new regusers(this.Api);
         this.Sms = new sms(this.Api);
-        this.Wallet = new wallets(this.Api);
+        this.Wallets = new wallets(this.Api);
     }
 
     setKeypair(key) {

@@ -2,7 +2,7 @@
 
 **Create api object**
 
-```
+```js
 var smart_api = require('./index.js');
 
 var SmartApi = new smart_api({
@@ -10,75 +10,66 @@ var SmartApi = new smart_api({
 });
 ```
 
-**Create new wallet:**
+**Set keypair for signed api calls**
 
-```
-SmartApi.Wallet.create({
-    username: 'login12356789',
-    password: 'password1235',
-    accountId: 'GDF5UDMVNZLITU3BUTMWK4QKGVD2HI7GIBECQXU57DWY4OLXMPTRXCWL',
-    publicKey: 'y9oNlW5WidNhpNllcgo1R6Oj5kBIKF6d+O2OOXdj5xs=',
-    keychainData: 'SBT2LO37LHU5X45F3FH4O4SNDFJDYYVZTLCNUUIS5RPSZUNGBVPMHD7T',
-    mainData: 'mainData',
-    // Kdfp params can be optionally passed
-    // kdfParams: {
-    //     algorithm: 'scrypt',
-    //     bits: 256,
-    //     n: Math.pow(2, 3),
-    //     r: 8,
-    //     p: 1
-    // }
-})
-.then(wallet => {
-    console.log(wallet);
-})
-.catch(err => {
-    console.log(err);
-})
+```js
+SmartApi.setKeypair(StellarSdk.Keypair.fromSeed('SAANXP4M47WTOMQO6BSV5HQOZBJDF3LOR3WD4D2MOF452O7ESPJMDLET'));
 ```
 
-**Get wallet from api server:**
+> **Notice** Check ./test/test.js for better implementation details. Api docs will be updated soon.
 
-```
-SmartApi.Wallet.get({
-    username: 'login1235678',
-    password: 'passx'
-}).then(function (wallet) {
-    // Here is your wallet object
-})
-.catch(err => {
-    console.log(err);
-})
-```
+## SmartApi.Wallets
+#### `SmartApi.Wallets.create()`
+#### `SmartApi.Wallets.get()`
+#### `SmartApi.Wallets.update()`
+#### `SmartApi.Wallets.updatePassword()`
+#### `SmartApi.Wallets.notExist()`
 
-**Check if waller username is free:**
+## SmartApi.Admins
+#### `SmartApi.Admins.create()`
+#### `SmartApi.Admins.get()`
+#### `SmartApi.Admins.getList()`
+#### `SmartApi.Admins.delete()`
 
-```
-SmartApi.Wallet.notExist({
-    username: 'login1235678'
-})
-.then(resp => {
-    console.log(resp)
-})
-.catch(err => {
-    console.log(err);
-})
-```
+## SmartApi.Agents
+#### `SmartApi.Admins.create()`
+#### `SmartApi.Admins.getList()`
 
-**Update wallet data:**
+## SmartApi.Bans
+#### `SmartApi.Admins.create()`
+#### `SmartApi.Admins.getList()`
+#### `SmartApi.Admins.delete()`
 
-```
-wallet.update({
-    update: {email: '1xxxxxx@xxx.com'},
-    secretKey: key._secretKey.toString('base64')
-});
-```
+## SmartApi.Cards
+#### `SmartApi.Admins.create()`
+#### `SmartApi.Admins.get()`
+#### `SmartApi.Admins.getList()`
 
-**Update wallet password:**
+## SmartApi.Companies
+#### `SmartApi.Admins.create()`
+#### `SmartApi.Admins.get()`
+#### `SmartApi.Admins.getList()`
 
-```
-wallet.updatePassword({
-    newPassword: '123123',
-    secretKey: key._secretKey.toString('base64')
-});
-```
+## SmartApi.Enrollments
+#### `SmartApi.Admins.accept()`
+#### `SmartApi.Admins.approve()`
+#### `SmartApi.Admins.decline()`
+#### `SmartApi.Admins.getList()`
+#### `SmartApi.Admins.getForUser()`
+#### `SmartApi.Admins.getForAgent()`
+
+## SmartApi.Invoices
+#### `SmartApi.Admins.create()`
+#### `SmartApi.Admins.get()`
+#### `SmartApi.Admins.getList()`
+#### `SmartApi.Admins.getStatistics()`
+
+## SmartApi.Merchants
+#### `SmartApi.Admins.createStore()`
+#### `SmartApi.Admins.getStores()`
+#### `SmartApi.Admins.getOrder()`
+#### `SmartApi.Admins.getStoreOrders()`
+
+## SmartApi.Regusers
+#### `SmartApi.Admins.create()`
+#### `SmartApi.Admins.getList()`
