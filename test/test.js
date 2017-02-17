@@ -189,7 +189,7 @@ describe('Invoices', function () {
                 amount: 100,
             })
             .then(resp => {
-                invId = resp.id;
+                invId = resp.data.id;
                 return Promise.resolve(resp);
             })
             .should.eventually.have.property('status', 'success');

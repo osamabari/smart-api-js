@@ -13,9 +13,12 @@ const sms = require('./lib/api/sms.js');
 const wallets = require('./lib/api/wallets.js');
 const qs = require('qs');
 const nacl = require('tweetnacl');
+const EventEmitter = require('events').EventEmitter;
 
-class SmartApi {
+class SmartApi extends EventEmitter {
     constructor(options) {
+        super();
+
         var self = this;
 
         this.options = Object.assign({}, {
@@ -28,10 +31,16 @@ class SmartApi {
 
         self.axios;
         this.nonce;
-        this.ttl;
+        this.ttlExpiration = 0;
         this.keypair;
 
         this.initAxios();
+
+        setInterval(function () {
+            var expires = self.ttlExpiration - Math.floor(Date.now() / 1000);
+
+            self.emit('tick', expires < 0 ? 0 : expires);
+        }, 1000);
     }
 
     initAxios() {
@@ -41,15 +50,11 @@ class SmartApi {
         self.axios.defaults.baseURL = this.options.host.replace(/\/+$/g, '');
         self.axios.defaults.timeout = this.options.request_ttl * 1000;
 
-        // self.axios.defaults.paramsSerializer = function(params) {
-        //     return queryString.stringify(params);
-        // };
-
         // Update nonce on return
         self.axios.interceptors.response.use(function (response) {
             if (response.data.nonce) {
                 self.nonce = response.data.nonce;
-                self.ttl = response.data.ttl;
+                self.ttlExpiration = Math.floor(Date.now() / 1000) + response.data.ttl;
             } else {
                 // If nonce didn't arrive - let's clear it
                 self.nonce = false;
