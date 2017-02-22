@@ -1,7 +1,13 @@
+/* * Copyright 2017 Atticlab LLC.
+ * Licensed under the Apache License, Version 2.0
+ * See the LICENSE or LICENSE_UA file at the root of this repository
+ * Contact us at http://atticlab.net
+ */
 const chai = require('chai');
 const chaiAsPromised = require('chai-as-promised');
 const wallet = require('../lib/classes/wallet.js');
 const stellar = require('stellar-sdk');
+const sha256 = require('sha256');
 
 chai.use(chaiAsPromised);
 chai.should();
@@ -34,9 +40,9 @@ describe('Wallets', function () {
         return SmartApi.Wallets.create({
                 username: testParams.user,
                 password: testParams.pwd,
-                accountId: 'GDF5UDMVNZLITU3BUTMWK4QKGVD2HI7GIBECQXU57DWY4OLXMPTRXCWL',
-                publicKey: 'y9oNlW5WidNhpNllcgo1R6Oj5kBIKF6d+O2OOXdj5xs=',
-                keychainData: 'SBT2LO37LHU5X45F3FH4O4SNDFJDYYVZTLCNUUIS5RPSZUNGBVPMHD7T',
+                accountId: SmartApi.Api.keypair.accountId(),
+                publicKey: SmartApi.Api.keypair._publicKey.toString('base64'),
+                keychainData: SmartApi.Api.keypair.seed(),
                 mainData: 'mainData',
             })
             .should.eventually.be.instanceof(wallet)
@@ -49,7 +55,6 @@ describe('Wallets', function () {
             .should.eventually.be.instanceof(wallet);
     });
 
-
     it('Update wallet email', function () {
         return SmartApi.Wallets.get({
                 username: testParams.user,
@@ -58,7 +63,7 @@ describe('Wallets', function () {
             .then(wallet => {
                 return wallet.update({
                     update: {email: 'debug@' + Date.now() + '.com'},
-                    secretKey: 'Z6W7f1np2/Ol2U/Hck0ZUjxiuZrE2lES7F8s0aYNXsPL2g2VblaJ02Gk2WVyCjVHo6PmQEgoXp347Y45d2PnGw=='
+                    secretKey: SmartApi.Api.keypair._secretKey.toString('base64')
                 });
             });
     });
@@ -74,6 +79,12 @@ describe('Wallets', function () {
                     secretKey: 'Z6W7f1np2/Ol2U/Hck0ZUjxiuZrE2lES7F8s0aYNXsPL2g2VblaJ02Gk2WVyCjVHo6PmQEgoXp347Y45d2PnGw=='
                 });
             });
+    });
+
+    it('Get wallet data', function () {
+        return SmartApi.Wallets.getWalletData({
+                username: testParams.user
+            }).should.eventually.have.property('status', 'success');
     });
 });
 
@@ -245,77 +256,211 @@ describe('Regusers', function () {
     });
 });
 
-// describe('Enrollments', function () {
-//     it('accept', function () {
-//         return SmartApi.Enrollments.accept({
-//             id: 1,
-//             token: 1,
-//             account_id: 1,
-//             tx_trust: 1,
-//         }).should.eventually.have.property('status', 'success');
-//     });
-//
-//     it('approve', function () {
-//         return SmartApi.Enrollments.approve({
-//             id: 1,
-//         }).should.eventually.have.property('status', 'success');
-//     });
-//
-//     it('decline', function () {
-//         return SmartApi.Enrollments.decline({
-//             id: 1,
-//             token: 1,
-//         }).should.eventually.have.property('status', 'success');
-//     });
-//
-//     it('getList', function () {
-//         return SmartApi.Enrollments.getList({
-//             type: 1,
-//             limit: 1,
-//             offset: 1,
-//         }).should.eventually.have.property('status', 'success');
-//     });
-//
-//     it('getForUser', function () {
-//         return SmartApi.Enrollments.getForUser({
-//             token: 1,
-//         }).should.eventually.have.property('status', 'success');
-//     });
-//
-//     it('getForAgent', function () {
-//         return SmartApi.Enrollments.getForAgent({
-//             token: 1,
-//             company_code: 1,
-//         }).should.eventually.have.property('status', 'success');
-//     });
-// });
-//
-// describe('Merchants', function () {
-//     it('createStore', function () {
-//         return SmartApi.Admins.delete({
-//             url
-//             name
-//         }).should.eventually.have.property('status', 'success');
-//     });
-//
-//     it('getStores', function () {
-//         return SmartApi.Admins.delete({
-//             limit
-//             offset
-//         }).should.eventually.have.property('status', 'success');
-//     });
-//
-//     it('getOrder', function () {
-//         return SmartApi.Admins.delete({
-//             order_id
-//         }).should.eventually.have.property('status', 'success');
-//     });
-//
-//     it('getStoreOrders', function () {
-//         return SmartApi.Admins.delete({
-//             store_id
-//             limit
-//             offset
-//         }).should.eventually.have.property('status', 'success');
-//     });
-// });
+describe('Enrollments', function () {
+    it('approve', function () {
+        let ipnCode = Date.now().toString();
+        let enrollmentData = null;
+
+        return SmartApi.Regusers.create({
+            ipn_code: ipnCode,
+            asset: 'EUAH',
+            surname: 'Surname',
+            name: 'Name',
+            middle_name: 'Middle',
+            email: Date.now() + '-debug-user@debug.com',
+            phone: ipnCode,
+            address: 'Address',
+            passport: ipnCode,
+        }).then((resp) => {
+            enrollmentData = resp.data;
+            return SmartApi.Enrollments.accept({
+                id: enrollmentData.id,
+                token: enrollmentData.otp,
+                account_id: stellar.Keypair.random().accountId(),
+                tx_trust: 'Trust',
+            })
+        }).then(() => {
+            return SmartApi.Enrollments.approve({
+                id: enrollmentData.id,
+            }).should.eventually.have.property('status', 'success');
+        });
+    });
+
+    it('accept', function () {
+        let ipnCode = Date.now().toString();
+
+        return SmartApi.Regusers.create({
+            ipn_code: ipnCode,
+            asset: 'EUAH',
+            surname: 'Surname',
+            name: 'Name',
+            middle_name: 'Middle',
+            email: Date.now() + '-debug-user@debug.com',
+            phone: ipnCode,
+            address: 'Address',
+            passport: ipnCode,
+        }).then((resp) => {
+            return SmartApi.Enrollments.accept({
+                id: resp.data.id,
+                token: resp.data.otp,
+                account_id: stellar.Keypair.random().accountId(),
+                tx_trust: 'Trust',
+            }).should.eventually.have.property('status', 'success');
+        });
+    });
+
+    it('decline', function () {
+        let ipnCode = Date.now().toString();
+
+        return SmartApi.Regusers.create({
+            ipn_code: ipnCode,
+            asset: 'EUAH',
+            surname: 'Surname',
+            name: 'Name',
+            middle_name: 'Middle',
+            email: Date.now() + '-debug-user@debug.com',
+            phone: ipnCode,
+            address: 'Address',
+            passport: ipnCode,
+        }).then((resp) => {
+            return SmartApi.Enrollments.decline({
+                id: resp.data.id,
+                token: resp.data.otp,
+            }).should.eventually.have.property('status', 'success');
+        });
+    });
+
+    it('getForUser', function () {
+        let ipnCode = Date.now().toString();
+        let enrollmentToken = null;
+
+        return SmartApi.Regusers.create({
+            ipn_code: ipnCode,
+            asset: 'EUAH',
+            surname: 'Surname',
+            name: 'Name',
+            middle_name: 'Middle',
+            email: Date.now() + '-debug-user@debug.com',
+            phone: ipnCode,
+            address: 'Address',
+            passport: ipnCode,
+        }).then((resp) => {
+            enrollmentToken = resp.data.otp;
+            return SmartApi.Enrollments.getForUser({
+                token: enrollmentToken,
+            }).should.eventually.have.property('status', 'success');
+        });
+    });
+
+    it('getForAgent', function () {
+        let companyCode = Date.now().toString() + '-agent';
+        let enrollmentToken = null;
+
+        return SmartApi.Companies.create({
+            code: companyCode,
+            title: 'Test company',
+            address: 'Address',
+            phone: '123123',
+            email: Date.now() + '-debug@debug.com',
+        }).then(() => {
+            return SmartApi.Agents.create({
+                type: testParams.distributionType,
+                asset: 'EUAH',
+                company_code: companyCode,
+            });
+        }).then((resp) => {
+            enrollmentToken = resp.data.otp;
+
+            return SmartApi.Enrollments.getForAgent({
+                token: enrollmentToken,
+                company_code: companyCode,
+            }).should.eventually.have.property('status', 'success');
+        })
+    });
+
+    it('getList', function () {
+        return SmartApi.Enrollments.getList({
+                limit: 10,
+                offset: 0
+            }).should.eventually.have.property('status', 'success');
+    });
+
+});
+
+describe('Merchants', function () {
+    let storeData = {};
+    let orderData = {};
+    it('createStore', function () {
+        return SmartApi.Merchants.createStore({
+                url: 'debug-' + Date.now() + '.com',
+                name: 'Name'
+            })
+            .then(resp => {
+                storeData = resp.data;
+                return Promise.resolve(resp);
+            })
+            .should.eventually.have.property('status', 'success');
+    });
+
+    it('getStores', function () {
+        return SmartApi.Merchants.getStores({
+                limit: 10,
+                offset: 0
+            })
+            .should.eventually.have.property('status', 'success');
+    });
+
+    it('createOrder', function () {
+
+        let orderParams = {
+            amount: 1.23,
+            currency: 'UAH',
+            order_id: '1',
+            details: 'Details',
+            server_url: storeData.url,
+            success_url: storeData.url,
+            fail_url: storeData.url,
+        };
+
+        let signData = {
+            'amount' : orderParams.amount,
+            'currency' : orderParams.currency,
+            'details' : orderParams.details,
+            'order_id' : orderParams.order_id,
+            'store_id' : storeData.store_id,
+        };
+
+        let signature = new Buffer(sha256(storeData.secret_key + new Buffer(JSON.stringify(signData)).toString('base64'))).toString('base64');
+
+        return SmartApi.Merchants.createOrder({
+                store_id: storeData.store_id,
+                amount: orderParams.amount,
+                currency: orderParams.currency,
+                order_id: orderParams.order_id,
+                server_url: orderParams.server_url,
+                success_url: orderParams.success_url,
+                fail_url: orderParams.fail_url,
+                details: orderParams.details,
+                signature: signature
+            })
+            .then(resp => {
+                orderData = resp.data;
+                return Promise.resolve(resp);
+            })
+            .should.eventually.have.property('status', 'success');
+    });
+
+    it('getStoreOrders', function () {
+        return SmartApi.Merchants.getStoreOrders({
+                store_id: storeData.store_id
+            })
+            .should.eventually.have.property('status', 'success');
+    });
+
+    it('getOrder', function () {
+        return SmartApi.Merchants.getOrder({
+            order_id: orderData.id
+        }).should.eventually.have.property('status', 'success');
+    });
+
+});
