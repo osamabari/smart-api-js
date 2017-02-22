@@ -65,7 +65,7 @@ describe('Wallets', function () {
                     update: {email: 'debug@' + Date.now() + '.com'},
                     secretKey: SmartApi.Api.keypair._secretKey.toString('base64')
                 });
-            });
+            }).should.eventually.be.instanceof(wallet);
     });
 
     it('Update wallet password', function () {
@@ -78,7 +78,7 @@ describe('Wallets', function () {
                     newPassword: '__debug__changed__',
                     secretKey: 'Z6W7f1np2/Ol2U/Hck0ZUjxiuZrE2lES7F8s0aYNXsPL2g2VblaJ02Gk2WVyCjVHo6PmQEgoXp347Y45d2PnGw=='
                 });
-            });
+            }).should.eventually.be.instanceof(wallet);
     });
 
     it('Get wallet data', function () {
