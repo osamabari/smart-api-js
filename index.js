@@ -118,6 +118,14 @@ class SmartApi extends EventEmitter {
         this.keypair = keypair;
     }
 
+    refreshNonce() {
+        return this.axios.get('/nonce', {
+            params: {
+                accountId: this.keypair.accountId()
+            }
+        })
+    }
+
     getNonce(params) {
         if (this.nonce) {
             return Promise.resolve(params)
