@@ -15,7 +15,7 @@ chai.should();
 var smart_api = require('../index.js');
 
 var SmartApi = new smart_api({
-    host: 'http://192.168.1.125:8180',
+    host: 'http://api.smartmoney.com.ua',
     debug: true,
 });
 
