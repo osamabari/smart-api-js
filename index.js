@@ -34,7 +34,7 @@ class SmartApi extends EventEmitter {
             debug: false,
         }, options);
 
-        self.axios;
+        this.axios;
         this.nonce;
         this.ttlExpiration = 0;
         this.keypair;
@@ -43,6 +43,10 @@ class SmartApi extends EventEmitter {
 
         setInterval(function () {
             var expires = self.ttlExpiration - Math.floor(Date.now() / 1000);
+
+            if (self.nonce && expires <= 0 ) {
+                self.nonce = null;
+            }
 
             self.emit('tick', expires < 0 ? 0 : expires);
         }, 1000);
@@ -151,7 +155,7 @@ class SmartApi extends EventEmitter {
  */
 module.exports = class {
     constructor(options) {
-        this.Api = new SmartApi(options)
+        this.Api = new SmartApi(options);
 
         this.Admins = new admins(this.Api);
         this.Agents = new agents(this.Api);
