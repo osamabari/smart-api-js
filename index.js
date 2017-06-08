@@ -82,7 +82,7 @@ class SmartApi extends EventEmitter {
         // Sign request before send
         self.axios.interceptors.request.use(function (config) {
             if (self.nonce && self.keypair) {
-                let route = config.url.substr(config.baseURL.length);
+                let route = config.url.replace(/^(https?:)?(\/{2})?.*?(?=\/)/, '');
 
                 // For get parameter we need to add data to query
                 if (typeof config.params == 'object' && Object.keys(config.params).length) {
