@@ -32,6 +32,9 @@ class SmartApi extends EventEmitter {
 
             // Enable debug mode
             debug: false,
+
+            // Set this to false to send requests via formdata and not raw json
+            sendRaw: true,
         }, options);
 
         this.axios;
@@ -81,6 +84,10 @@ class SmartApi extends EventEmitter {
 
         // Sign request before send
         self.axios.interceptors.request.use(function (config) {
+            if (!self.options.sendRaw) {
+                config.data = qs.stringify(config.data)
+            }
+
             if (self.nonce && self.keypair) {
                 let route = config.url.replace(/^(https?:)?(\/{2})?.*?(?=\/)/, '');
 
